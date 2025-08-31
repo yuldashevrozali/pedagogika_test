@@ -1,14 +1,14 @@
-name: EAS Build
+name: Build Android APK
 
 on:
   push:
     branches:
-      - master   # main branchga push bo‘lganda build bo‘ladi
+      - master
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -19,16 +19,12 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: |
-          npm install -g expo-cli eas-cli
-          npm install
+        run: npm install
 
-      - name: Login to EAS
-        run: eas login --token ${{ secrets.EAS_TOKEN }}
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
       - name: Run EAS Build (Android APK)
-        run: eas build --platform android --profile preview --non-interactive
-
-      # Agar iOS ham kerak bo‘lsa qo‘shib qo‘y:
-      # - name: Run EAS Build (iOS IPA)
-      #   run: eas build --platform ios --profile preview --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas build --platform android --non-interactive
