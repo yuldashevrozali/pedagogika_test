@@ -12,27 +12,62 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Build Android APK
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}  # GitHub secretsga qo‘ygan token
-        run: eas build --platform android --non-interactive --profile preview
+      - name: Setup EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Start Android Build
+        id: build
+        run: |
+          OUTPUT=$(eas build --platform android --profile preview --non-interactive 2>&1) || {
+            echo "Build command failed with output: $OUTPUT"
+            exit 1
+          }
+          BUILD_URL=$(echo "$OUTPUT" | grep -o 'https://expo.dev/accounts/[^/]\+/projects/[^/]\+/builds/[a-f0-9-]\+' | head -1)
+          if [ -z "$BUILD_URL" ]; then
+            echo "Could not find build URL in output: $OUTPUT"
+            exit 1
+          fi
+          BUILD_ID=$(basename "$BUILD_URL")
+          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
+
+      - name: Wait for Build Completion
+        run: |
+          while true; do
+            STATUS=$(eas build:view $BUILD_ID --json | jq -r '.status')
+            echo "Build status: $STATUS"
+            if [ "$STATUS" = "finished" ]; then
+              break
+            elif [ "$STATUS" = "errored" ]; then
+              echo "Build failed"
+              exit 1
+            fi
+            sleep 30
+          done
+
+      - name: Download APK
+        run: |
+          BUILD_URL=$(eas build:view $BUILD_ID --json | jq -r '.artifacts.buildUrl')
+          curl -L "$BUILD_URL" -o app-preview.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-preview.apk
-          path: |
-            **/*.apk
+          path: app-preview.apk
