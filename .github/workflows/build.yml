@@ -10,61 +10,33 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: 18
-          cache: npm
+          node-version: '18.x'
+
+      - name: Cache node modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.yarn
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install expo-cli
+        run: yarn global add expo-cli@5.5.1
 
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install EAS CLI
+        run: yarn add eas-cli@16.18.0
 
-      - name: Start Android Build
-        id: build
-        run: |
-          OUTPUT=$(eas build --platform android --profile development --non-interactive 2>&1) || {
-            echo "Build command failed with output: $OUTPUT"
-            exit 1
-          }
-          BUILD_URL=$(echo "$OUTPUT" | grep -o 'https://expo.dev/accounts/[^/]\+/projects/[^/]\+/builds/[a-f0-9-]\+' | head -1)
-          BUILD_ID=$(basename "$BUILD_URL")
-          echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
+      - name: Authenticate Expo
+        run: expo login --token ${{ secrets.EXPO_TOKEN }}
 
-      - name: Wait for Build Completion
-        run: |
-          while true; do
-            STATUS=$(eas build:view $BUILD_ID --json | jq -r '.status')
-            echo "Build status: $STATUS"
-            if [ "$STATUS" = "finished" ]; then
-              break
-            elif [ "$STATUS" = "errored" ]; then
-              echo "Build failed"
-              exit 1
-            fi
-            sleep 30
-          done
-
-      - name: Download APK
-        run: |
-          BUILD_URL=$(eas build:view $BUILD_ID --json | jq -r '.artifacts.buildUrl')
-          curl -L "$BUILD_URL" -o app-debug.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-debug.apk
-          path: app-debug.apk
+      - name: Build Android APK
+        run: eas build --platform android --profile development --non-interactive
