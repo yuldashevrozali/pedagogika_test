@@ -27,6 +27,12 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.anonymous.rntestapp"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "b73562ca-1938-4037-9de9-fa33432bd2c9"
+      }
+    },
+    "owner": "yuldashev_frontend"
   }
 }
