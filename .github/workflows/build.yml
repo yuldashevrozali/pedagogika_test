@@ -1,42 +1,34 @@
-name: Build Android APK
+name: EAS Build
 
 on:
   push:
     branches:
-      - master
-      - main
-  workflow_dispatch:
+      - main   # main branchga push bo‘lganda build bo‘ladi
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Set up Node.js
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
-
-      - name: Cache node modules
-        uses: actions/cache@v3
-        with:
-          path: |
-            node_modules
-            ~/.yarn
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          node-version: 18
 
       - name: Install dependencies
-        run: yarn install
+        run: |
+          npm install -g expo-cli eas-cli
+          npm install
 
-      - name: Install expo-cli
-        run: yarn global add expo-cli@5.5.1
+      - name: Login to EAS
+        run: eas login --token ${{ secrets.EAS_TOKEN }}
 
-      - name: Install EAS CLI
-        run: yarn add eas-cli@16.18.0
+      - name: Run EAS Build (Android APK)
+        run: eas build --platform android --profile preview --non-interactive
 
-      - name: Authenticate Expo
-        run: expo login --token ${{ secrets.EXPO_TOKEN }}
-
-      - name: Build Android APK
-        run: eas build --platform android --profile development --non-interactive
+      # Agar iOS ham kerak bo‘lsa qo‘shib qo‘y:
+      # - name: Run EAS Build (iOS IPA)
+      #   run: eas build --platform ios --profile preview --non-interactive
