@@ -31,7 +31,7 @@ jobs:
         run: eas build --platform android --non-interactive --profile preview
 
       - name: Upload APK artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: app-preview.apk
           path: |
