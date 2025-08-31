@@ -36,7 +36,10 @@ jobs:
       - name: Start Android Build
         id: build
         run: |
-          OUTPUT=$(eas build --platform android --profile development --non-interactive)
+          OUTPUT=$(eas build --platform android --profile development --non-interactive 2>&1) || {
+            echo "Build command failed with output: $OUTPUT"
+            exit 1
+          }
           BUILD_URL=$(echo "$OUTPUT" | grep -o 'https://expo.dev/accounts/[^/]\+/projects/[^/]\+/builds/[a-f0-9-]\+' | head -1)
           BUILD_ID=$(basename "$BUILD_URL")
           echo "BUILD_ID=$BUILD_ID" >> $GITHUB_ENV
