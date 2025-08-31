@@ -3,12 +3,13 @@ name: Build Android APK
 on:
   push:
     branches:
-      - master
-  workflow_dispatch:
+      - master       # main branchga push qilganda build bo‘ladi
+  workflow_dispatch:  # qo‘lda ham ishga tushirish imkoniyati
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -24,7 +25,14 @@ jobs:
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
-      - name: Run EAS Build (Android APK)
+      - name: Build Android APK
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas build --platform android --non-interactive
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}  # GitHub secretsga qo‘ygan token
+        run: eas build --platform android --non-interactive --profile preview
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-preview.apk
+          path: |
+            **/*.apk
