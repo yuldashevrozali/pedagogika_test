@@ -26,6 +26,7 @@
     "@expo/metro-runtime": "~4.0.1"
   },
   "devDependencies": {
+    "@react-native-community/cli": "latest",
     "@types/react": "~18.3.12",
     "typescript": "~5.3.3"
   }
